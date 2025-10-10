@@ -81,7 +81,7 @@ Global constants at the top of the script can be modified:
 Run the script with default settings:
 
 ```bash
-python libcal_analysis.py
+python libcal_booking_analysis.py
 ```
 
 This will:
@@ -93,7 +93,7 @@ This will:
 ### Command-Line Options
 
 ```bash
-python libcal_analysis.py [OPTIONS]
+python libcal_booking_analysis.py [OPTIONS]
 ```
 
 **Available options:**
@@ -107,17 +107,17 @@ python libcal_analysis.py [OPTIONS]
 
 Analyze 8 weeks with 2-hour booking slots:
 ```bash
-python libcal_analysis.py --window 8 --duration 2
+python libcal_booking_analysis.py --window 8 --duration 2
 ```
 
 Use custom input and output files:
 ```bash
-python libcal_analysis.py --input data/my_spaces.csv --output reports/analysis.csv
+python libcal_booking_analysis.py --input data/my_spaces.csv --output reports/analysis.csv
 ```
 
 Analyze 4 weeks with custom output location:
 ```bash
-python libcal_analysis.py --window 4 --output output/monthly_report_$(date +%Y%m%d).csv
+python libcal_booking_analysis.py --window 4 --output output/monthly_report_$(date +%Y%m%d).csv
 ```
 
 ## Output
