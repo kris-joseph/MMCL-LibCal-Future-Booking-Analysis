@@ -1,0 +1,17 @@
+# LibCal Space Booking Analysis - Required Python Packages
+
+# HTTP requests library for API calls
+requests>=2.31.0
+
+# Timezone handling
+pytz>=2023.3
+
+# Note: The following packages are part of Python's standard library
+# and do not need to be installed separately:
+# - argparse
+# - csv
+# - sys
+# - datetime
+# - typing
+# - collections
+# - json (used in diagnostic script)
