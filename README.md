@@ -1,4 +1,4 @@
-# LibCal Space Booking Analysis
+# LibCal Space Booking Capacity Analysis
 
 A Python script for analyzing booking patterns and availability of studio and maker spaces using Springshare's LibCal API. This tool calculates booking rates, tracks availability, and generates comprehensive reports to help assess space utilization.
 
@@ -81,7 +81,7 @@ Global constants at the top of the script can be modified:
 Run the script with default settings:
 
 ```bash
-python libcal_booking_analysis.py
+python space_capacity_analysis.py
 ```
 
 This will:
@@ -93,7 +93,7 @@ This will:
 ### Command-Line Options
 
 ```bash
-python libcal_booking_analysis.py [OPTIONS]
+python space_capacity_analysis.py [OPTIONS]
 ```
 
 **Available options:**
@@ -107,17 +107,17 @@ python libcal_booking_analysis.py [OPTIONS]
 
 Analyze 8 weeks with 2-hour booking slots:
 ```bash
-python libcal_booking_analysis.py --window 8 --duration 2
+python space_capacity_analysis.py --window 8 --duration 2
 ```
 
 Use custom input and output files:
 ```bash
-python libcal_booking_analysis.py --input data/my_spaces.csv --output reports/analysis.csv
+python space_capacity_analysis.py --input data/my_spaces.csv --output reports/analysis.csv
 ```
 
 Analyze 4 weeks with custom output location:
 ```bash
-python libcal_booking_analysis.py --window 4 --output output/monthly_report_$(date +%Y%m%d).csv
+python space_capacity_analysis.py --window 4 --output output/monthly_report_$(date +%Y%m%d).csv
 ```
 
 ## Output

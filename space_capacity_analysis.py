@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""LibCal Space Booking Analysis Script.
+"""LibCal Space Booking Capacity Analysis Script.
 
-This script analyzes future booking data from Springshare's LibCal API to assess
+This script analyzes booking data from Springshare's LibCal API to assess
 usage rates of bookable studio and maker spaces. It calculates usage
 percentages over various time periods and identifies next available booking
 slots for each space.
@@ -10,18 +10,15 @@ Note: The LibCal Hours API has a maximum limit of 100 days per request.
 The default analysis window is set to 13 weeks (~90 days) to stay within
 this limit.
 
-Note: The script requires authorized API access using a CLIENT_ID and CLIENT_SECRET
-(to be set as configuration constants)
-
 Usage:
-    python libcal_booking_analysis.py [OPTIONS]
+    python space_capacity_analysis.py [OPTIONS]
 
 Options:
     --input CSV_FILE    Input CSV file with space data
                         (default: spaces_to_analyze.csv)
     --output CSV_FILE   Output CSV file for results
                         (default: space_booking_analysis.csv)
-    --window WEEKS      Analysis window in weeks (default: 13)
+    --window WEEKS      Analysis window in weeks (default: 16)
     --duration HOURS    Booking slot duration in hours (default: 3.0)
 """
 
@@ -38,8 +35,8 @@ import pytz
 
 # Configuration constants
 API_BASE_URL = "https://yorku.libcal.com/api/1.1"
-OAUTH_CLIENT_ID = "CLIENT_ID"
-OAUTH_CLIENT_SECRET = "CLIENT_SECRET"
+OAUTH_CLIENT_ID = 
+OAUTH_CLIENT_SECRET = 
 TIMEZONE = "America/Toronto"
 DEFAULT_INPUT_FILE = "input/spaces_to_analyze.csv"
 DEFAULT_OUTPUT_FILE_TEMPLATE = "output/space_booking_analysis_{date}.csv"
