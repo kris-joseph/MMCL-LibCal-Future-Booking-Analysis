@@ -24,6 +24,7 @@ Options:
 
 import argparse
 import csv
+import os
 import sys
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
@@ -35,8 +36,9 @@ import pytz
 
 # Configuration constants
 API_BASE_URL = "https://yorku.libcal.com/api/1.1"
-OAUTH_CLIENT_ID = 
-OAUTH_CLIENT_SECRET = 
+# Read OAuth credentials from environment variables (set by GitHub Actions)
+OAUTH_CLIENT_ID = os.environ.get('LIBCAL_CLIENT_ID', '')
+OAUTH_CLIENT_SECRET = os.environ.get('LIBCAL_CLIENT_SECRET', '')
 TIMEZONE = "America/Toronto"
 DEFAULT_INPUT_FILE = "input/spaces_to_analyze.csv"
 DEFAULT_OUTPUT_FILE_TEMPLATE = "output/space_booking_analysis_{date}.csv"
@@ -68,6 +70,12 @@ def get_oauth_token() -> str:
     Raises:
         LibCalAPIError: If token retrieval fails.
     """
+    if not OAUTH_CLIENT_ID or not OAUTH_CLIENT_SECRET:
+        raise LibCalAPIError(
+            "OAuth credentials not found. Please set LIBCAL_CLIENT_ID and "
+            "LIBCAL_CLIENT_SECRET environment variables."
+        )
+    
     url = f"{API_BASE_URL}/oauth/token"
     params = {
         "client_id": OAUTH_CLIENT_ID,
@@ -261,164 +269,171 @@ def get_space_bookings(
         raise LibCalAPIError(
             f"Failed to fetch bookings for space {space_id}: {e}"
         )
+    except ValueError as e:
+        raise LibCalAPIError(
+            f"Invalid bookings response format for space {space_id}: {e}"
+        )
 
 
-def calculate_total_hours(
-    hours_by_date: Dict[str, List[Tuple[datetime, datetime]]],
-    start_date: datetime,
-    end_date: datetime,
-) -> float:
-    """Calculate total available hours within a date range.
+def generate_potential_slots(
+    hours_data: Dict[str, List[Tuple[datetime, datetime]]],
+    duration_hours: float,
+) -> List[datetime]:
+    """Generate all potential booking slots within operating hours.
 
     Args:
-        hours_by_date: Dictionary of operating hours by date.
-        start_date: Start of the period (inclusive).
-        end_date: End of the period (inclusive of the full day).
+        hours_data: Dictionary mapping dates to operating hours.
+        duration_hours: Duration of booking slots in hours.
 
     Returns:
-        Total hours available in the period.
+        List of potential booking start times.
     """
-    total_hours = 0.0
-    current_date = start_date.date()
-    end_date_only = end_date.date()
+    slots = []
+    duration = timedelta(hours=duration_hours)
 
-    while current_date <= end_date_only:
-        date_str = current_date.strftime("%Y-%m-%d")
+    for date_str, time_ranges in sorted(hours_data.items()):
+        for open_time, close_time in time_ranges:
+            current_time = open_time
 
-        if date_str in hours_by_date:
-            for open_time, close_time in hours_by_date[date_str]:
-                duration = (close_time - open_time).total_seconds() / 3600
-                total_hours += duration
+            while current_time + duration <= close_time:
+                if current_time.minute in BOOKING_TIME_INCREMENTS:
+                    slots.append(current_time)
 
-        current_date += timedelta(days=1)
+                current_time += timedelta(minutes=15)
 
-    return total_hours
+    return slots
 
 
 def calculate_booked_hours(
-    bookings: List[Dict], start_date: datetime, end_date: datetime
-) -> Tuple[float, int]:
-    """Calculate total booked hours and booking count within a date range.
+    bookings: List[Dict], tz: pytz.timezone
+) -> List[Tuple[datetime, datetime]]:
+    """Extract booked time ranges from booking data.
 
     Args:
-        bookings: List of booking dictionaries.
-        start_date: Start of the period (inclusive).
-        end_date: End of the period (inclusive of the full day).
+        bookings: List of booking dictionaries from API.
+        tz: Timezone for datetime localization.
 
     Returns:
-        Tuple of (total hours booked, number of bookings) in the period.
+        List of (start, end) datetime tuples for booked periods.
     """
-    total_booked = 0.0
-    booking_count = 0
-    tz = pytz.timezone(TIMEZONE)
-    
-    # Make end_date inclusive of the full day by setting to end of day
-    end_date_inclusive = end_date.replace(hour=23, minute=59, second=59)
+    booked_ranges = []
 
     for booking in bookings:
         try:
-            from_date = datetime.fromisoformat(
-                booking["fromDate"].replace("+11:00", "")
-            )
-            to_date = datetime.fromisoformat(
-                booking["toDate"].replace("+11:00", "")
-            )
+            from_date = booking.get("fromDate")
+            to_date = booking.get("toDate")
 
-            from_date = tz.localize(from_date.replace(tzinfo=None))
-            to_date = tz.localize(to_date.replace(tzinfo=None))
+            if not from_date or not to_date:
+                continue
 
-            booking_start = max(from_date, start_date)
-            booking_end = min(to_date, end_date_inclusive)
+            from_dt = datetime.fromisoformat(from_date.replace("Z", "+00:00"))
+            to_dt = datetime.fromisoformat(to_date.replace("Z", "+00:00"))
 
-            if booking_start < booking_end:
-                duration = (booking_end - booking_start).total_seconds() / 3600
-                total_booked += duration
-                booking_count += 1
+            from_dt = from_dt.astimezone(tz)
+            to_dt = to_dt.astimezone(tz)
 
-        except (KeyError, ValueError):
+            booked_ranges.append((from_dt, to_dt))
+
+        except (ValueError, AttributeError):
             continue
 
-    return total_booked, booking_count
+    return booked_ranges
+
+
+def is_slot_available(
+    slot_start: datetime,
+    duration_hours: float,
+    booked_ranges: List[Tuple[datetime, datetime]],
+) -> bool:
+    """Check if a time slot is available for booking.
+
+    Args:
+        slot_start: Start time of the potential booking slot.
+        duration_hours: Duration of the slot in hours.
+        booked_ranges: List of (start, end) tuples for existing bookings.
+
+    Returns:
+        True if slot is available, False otherwise.
+    """
+    buffer = timedelta(minutes=BOOKING_BUFFER_MINUTES)
+    slot_end = slot_start + timedelta(hours=duration_hours)
+
+    buffered_start = slot_start - buffer
+    buffered_end = slot_end + buffer
+
+    for booked_start, booked_end in booked_ranges:
+        if not (buffered_end <= booked_start or buffered_start >= booked_end):
+            return False
+
+    return True
+
+
+def calculate_metrics_for_period(
+    potential_slots: List[datetime],
+    booked_ranges: List[Tuple[datetime, datetime]],
+    duration_hours: float,
+    cutoff_date: datetime,
+) -> Tuple[float, float, float, int]:
+    """Calculate booking metrics for a specific time period.
+
+    Args:
+        potential_slots: All potential booking slots in the period.
+        booked_ranges: List of booked time ranges.
+        duration_hours: Duration of each booking slot.
+        cutoff_date: End date for the analysis period.
+
+    Returns:
+        Tuple of (booking_rate, available_hours, booked_hours, booking_count).
+    """
+    slots_in_period = [s for s in potential_slots if s < cutoff_date]
+
+    if not slots_in_period:
+        return 0.0, 0.0, 0.0, 0
+
+    available_count = sum(
+        1
+        for slot in slots_in_period
+        if is_slot_available(slot, duration_hours, booked_ranges)
+    )
+
+    booked_count = len(slots_in_period) - available_count
+    total_slots = len(slots_in_period)
+
+    booking_rate = (booked_count / total_slots * 100) if total_slots > 0 else 0.0
+    available_hours = available_count * duration_hours
+    booked_hours = booked_count * duration_hours
+
+    bookings_in_period = sum(
+        1
+        for start, end in booked_ranges
+        if start < cutoff_date
+    )
+
+    return booking_rate, available_hours, booked_hours, bookings_in_period
 
 
 def find_next_available_slot(
-    hours_by_date: Dict[str, List[Tuple[datetime, datetime]]],
-    bookings: List[Dict],
-    start_time: datetime,
+    potential_slots: List[datetime],
+    booked_ranges: List[Tuple[datetime, datetime]],
     duration_hours: float,
-) -> Optional[datetime]:
-    """Find the next available booking slot of specified duration.
+    current_time: datetime,
+) -> Optional[str]:
+    """Find the next available booking slot after the current time.
 
     Args:
-        hours_by_date: Dictionary of operating hours by date.
-        bookings: List of existing bookings.
-        start_time: Time to start searching from.
-        duration_hours: Required duration in hours.
+        potential_slots: All potential booking slots.
+        booked_ranges: List of booked time ranges.
+        duration_hours: Duration of booking slots.
+        current_time: Current date/time to search from.
 
     Returns:
-        Datetime of next available slot, or None if not found within
-        analysis window.
+        Formatted string of next available time, or None if no slots available.
     """
-    tz = pytz.timezone(TIMEZONE)
-    duration_minutes = int(duration_hours * 60)
+    future_slots = [s for s in potential_slots if s >= current_time]
 
-    booked_intervals = []
-    for booking in bookings:
-        try:
-            from_date = datetime.fromisoformat(
-                booking["fromDate"].replace("+11:00", "")
-            )
-            to_date = datetime.fromisoformat(
-                booking["toDate"].replace("+11:00", "")
-            )
-
-            from_date = tz.localize(from_date.replace(tzinfo=None))
-            to_date = tz.localize(to_date.replace(tzinfo=None))
-
-            booked_intervals.append((from_date, to_date))
-        except (KeyError, ValueError):
-            continue
-
-    booked_intervals.sort()
-
-    current_date = start_time.date()
-    max_date = (start_time + timedelta(weeks=16)).date()
-
-    while current_date <= max_date:
-        date_str = current_date.strftime("%Y-%m-%d")
-
-        if date_str not in hours_by_date:
-            current_date += timedelta(days=1)
-            continue
-
-        for open_time, close_time in hours_by_date[date_str]:
-            if open_time.date() == current_date:
-                check_time = max(open_time, start_time)
-
-                check_time = check_time.replace(
-                    minute=(check_time.minute // 15) * 15, second=0, microsecond=0
-                )
-
-                if check_time.minute not in BOOKING_TIME_INCREMENTS:
-                    check_time = check_time.replace(minute=0) + timedelta(
-                        minutes=15 * ((check_time.minute // 15) + 1)
-                    )
-
-                while check_time + timedelta(minutes=duration_minutes) <= close_time:
-                    slot_end = check_time + timedelta(minutes=duration_minutes)
-
-                    is_available = True
-                    for booking_start, booking_end in booked_intervals:
-                        if check_time < booking_end and slot_end > booking_start:
-                            is_available = False
-                            break
-
-                    if is_available:
-                        return check_time
-
-                    check_time += timedelta(minutes=15)
-
-        current_date += timedelta(days=1)
+    for slot in future_slots:
+        if is_slot_available(slot, duration_hours, booked_ranges):
+            return slot.strftime("%Y-%m-%d %H:%M")
 
     return None
 
@@ -427,50 +442,55 @@ def analyze_space(
     token: str,
     space: Dict[str, str],
     analysis_start: datetime,
-    analysis_window_weeks: int,
-    booking_duration_hours: float,
+    window_weeks: int,
+    duration_hours: float,
     location_hours_cache: Dict[str, Dict],
 ) -> Dict:
-    """Analyze booking metrics for a single space.
+    """Analyze booking patterns for a single space.
 
     Args:
         token: OAuth access token.
-        space: Dictionary containing space metadata.
-        analysis_start: Start datetime for analysis.
-        analysis_window_weeks: Number of weeks to analyze.
-        booking_duration_hours: Booking slot duration for availability check.
-        location_hours_cache: Cache of location hours to avoid redundant
-            API calls.
+        space: Space metadata dictionary.
+        analysis_start: Start date for analysis.
+        window_weeks: Number of weeks to analyze.
+        duration_hours: Booking slot duration in hours.
+        location_hours_cache: Cache of location hours data.
 
     Returns:
-        Dictionary containing booking metrics for the space.
+        Dictionary containing analysis metrics.
     """
-    space_id = space["space_id"]
     location_id = space["location_id"]
+    space_id = space["space_id"]
+    tz = pytz.timezone(TIMEZONE)
 
-    analysis_end = analysis_start + timedelta(weeks=analysis_window_weeks)
-    from_date_str = analysis_start.strftime("%Y-%m-%d")
-    # Request hours API through the end date (Hours API returns through this date)
-    to_date_str = analysis_end.strftime("%Y-%m-%d")
-    days_to_fetch = (analysis_end - analysis_start).days + 1  # +1 for inclusive
-
+    # Fetch location hours (with caching)
     if location_id not in location_hours_cache:
+        analysis_end = analysis_start + timedelta(weeks=window_weeks)
+        from_date = analysis_start.strftime("%Y-%m-%d")
+        to_date = analysis_end.strftime("%Y-%m-%d")
+
         location_hours_cache[location_id] = get_location_hours(
-            token, location_id, from_date_str, to_date_str
+            token, location_id, from_date, to_date
         )
 
-    hours_by_date = location_hours_cache[location_id]
+    hours_data = location_hours_cache[location_id]
 
-    bookings = get_space_bookings(
-        token, space_id, from_date_str, days_to_fetch
-    )
+    # Fetch bookings
+    from_date = analysis_start.strftime("%Y-%m-%d")
+    days = window_weeks * 7
+    bookings = get_space_bookings(token, space_id, from_date, days)
 
+    # Generate potential slots and booking ranges
+    potential_slots = generate_potential_slots(hours_data, duration_hours)
+    booked_ranges = calculate_booked_hours(bookings, tz)
+
+    # Calculate metrics for different periods
     periods = {
-        "1week": timedelta(weeks=1),
-        "2weeks": timedelta(weeks=2),
-        "1month": timedelta(days=30),
-        "2months": timedelta(days=60),
-        "3months": timedelta(days=90),
+        "1week": 1,
+        "2weeks": 2,
+        "1month": 4,
+        "2months": 8,
+        "3months": 13,
     }
 
     metrics = {
@@ -482,75 +502,76 @@ def analyze_space(
         "location_name": space["location_name"],
     }
 
-    for period_name, period_delta in periods.items():
-        period_end = min(analysis_start + period_delta, analysis_end)
-
-        total_hours = calculate_total_hours(
-            hours_by_date, analysis_start, period_end
+    for period_name, weeks in periods.items():
+        cutoff = analysis_start + timedelta(weeks=weeks)
+        rate, avail_hrs, booked_hrs, count = calculate_metrics_for_period(
+            potential_slots, booked_ranges, duration_hours, cutoff
         )
 
-        booked_hours, booking_count = calculate_booked_hours(
-            bookings, analysis_start, period_end
-        )
+        metrics[f"booking_rate_{period_name}"] = round(rate, 2)
+        metrics[f"total_hours_available_{period_name}"] = round(avail_hrs, 2)
+        metrics[f"total_hours_booked_{period_name}"] = round(booked_hrs, 2)
+        metrics[f"booking_count_{period_name}"] = count
 
-        booking_rate = (
-            (booked_hours / total_hours * 100) if total_hours > 0 else 0.0
-        )
-
-        metrics[f"booking_rate_{period_name}"] = round(booking_rate, 2)
-        metrics[f"total_hours_available_{period_name}"] = round(total_hours, 2)
-        metrics[f"total_hours_booked_{period_name}"] = round(booked_hours, 2)
-        metrics[f"booking_count_{period_name}"] = booking_count
-
+    # Find next available slot
     next_available = find_next_available_slot(
-        hours_by_date, bookings, analysis_start, booking_duration_hours
+        potential_slots, booked_ranges, duration_hours, analysis_start
     )
-
     metrics["next_available_booking"] = (
-        next_available.strftime("%Y-%m-%d %H:%M")
-        if next_available
-        else "No availability"
+        next_available if next_available else "No availability"
     )
 
     return metrics
 
 
 def print_summary_by_location(results: List[Dict]) -> None:
-    """Print a summary of booking metrics grouped by location and category.
+    """Print summary statistics grouped by location and category.
 
     Args:
         results: List of space analysis results.
     """
-    # Organize data by location, then by category
     location_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
     for result in results:
-        location_name = result["location_name"]
-        category_name = result["category_name"]
-        
-        for key, value in result.items():
-            if key.startswith("booking_rate_") or key.startswith("total_hours_") or key.startswith("booking_count_"):
-                if isinstance(value, (int, float)):
-                    location_data[location_name][category_name][key].append(value)
+        location = result["location_name"]
+        category = result["category_name"]
+
+        for period in ["1week", "2weeks", "1month", "2months", "3months"]:
+            booking_key = f"booking_rate_{period}"
+            available_key = f"total_hours_available_{period}"
+            booked_key = f"total_hours_booked_{period}"
+            count_key = f"booking_count_{period}"
+
+            location_data[location][category][booking_key].append(
+                result[booking_key]
+            )
+            location_data[location][category][available_key].append(
+                result[available_key]
+            )
+            location_data[location][category][booked_key].append(
+                result[booked_key]
+            )
+            location_data[location][category][count_key].append(
+                result[count_key]
+            )
 
     print("\n" + "=" * 79)
-    print("LOCATION-LEVEL SUMMARY (BY CATEGORY)")
+    print("SUMMARY BY LOCATION AND CATEGORY")
     print("=" * 79)
 
     for location_name in sorted(location_data.keys()):
-        print(f"\n{location_name}")
+        print(f"\nLocation: {location_name}")
         print("=" * 79)
         
-        # Calculate location totals across all categories
+        # Calculate location-wide totals
         location_totals = defaultdict(list)
         for category_name in location_data[location_name].keys():
-            category_data = location_data[location_name][category_name]
-            for key, values in category_data.items():
+            for key, values in location_data[location_name][category_name].items():
                 location_totals[key].extend(values)
         
-        # Print location-level totals
-        print(f"\nLOCATION TOTALS:")
-        print("-" * 79)
+        # Print location totals
+        print("\n  LOCATION TOTALS:")
+        print("  " + "-" * 77)
         for period in ["1week", "2weeks", "1month", "2months", "3months"]:
             booking_key = f"booking_rate_{period}"
             available_key = f"total_hours_available_{period}"
