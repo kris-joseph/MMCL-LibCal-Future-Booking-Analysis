@@ -61,7 +61,7 @@ function createChart(canvasId, dates, datasets) {
                                 label += ': ';
                             }
                             if (context.parsed.y !== null) {
-                                label += (context.parsed.y * 100).toFixed(1) + '%';
+                                label += context.parsed.y.toFixed(1) + '%';
                             }
                             return label;
                         }
@@ -71,10 +71,10 @@ function createChart(canvasId, dates, datasets) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 1,
+                    max: 100,
                     ticks: {
                         callback: function(value) {
-                            return (value * 100).toFixed(0) + '%';
+                            return value.toFixed(0) + '%';
                         }
                     },
                     title: {
