@@ -1,0 +1,59 @@
+name: Daily LibCal Space Capacity Analysis
+
+on:
+  schedule:
+    # Run at 12:00 UTC (8:00 AM Toronto time during EDT)
+    # Note: During EST (winter), Toronto is UTC-5, so this runs at 7:00 AM
+    # You may want to adjust to 13:00 UTC for consistent 8:00 AM year-round
+    - cron: '0 12 * * *'
+  
+  # Allow manual triggering for testing
+  workflow_dispatch:
+
+jobs:
+  analyze-space-capacity:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Needed to push changes back to the repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests pytz
+      
+      - name: Create necessary directories
+        run: |
+          mkdir -p input output
+      
+      - name: Run capacity analysis
+        env:
+          LIBCAL_CLIENT_ID: ${{ secrets.LIBCAL_CLIENT_ID }}
+          LIBCAL_CLIENT_SECRET: ${{ secrets.LIBCAL_CLIENT_SECRET }}
+        run: |
+          python space_capacity_analysis.py
+      
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+      
+      - name: Commit and push results
+        run: |
+          git add output/
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Automated capacity analysis - $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
