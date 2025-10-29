@@ -35,6 +35,7 @@ import pytz
 
 # Configuration constants
 API_BASE_URL = "https://yorku.libcal.com/api/1.1"
+# Read OAuth credentials from environment variables (set by GitHub Actions)
 OAUTH_CLIENT_ID = os.environ.get('LIBCAL_CLIENT_ID', '')
 OAUTH_CLIENT_SECRET = os.environ.get('LIBCAL_CLIENT_SECRET', '')
 TIMEZONE = "America/Toronto"
