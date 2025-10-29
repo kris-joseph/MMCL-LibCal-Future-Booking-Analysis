@@ -97,9 +97,14 @@ def calculate_days_until(next_available: str) -> int:
         if not next_available or next_available.lower() in ['none', 'n/a', '']:
             return MAX_DAYS_FOR_RED + 1  # Return max+ for unavailable spaces
         
-        next_date = datetime.strptime(next_available, '%Y-%m-%d')
+        # Try parsing with timestamp first, then without
+        try:
+            next_date = datetime.strptime(next_available, '%Y-%m-%d %H:%M')
+        except ValueError:
+            next_date = datetime.strptime(next_available, '%Y-%m-%d')
+        
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        delta = (next_date - today).days
+        delta = (next_date.replace(hour=0, minute=0, second=0, microsecond=0) - today).days
         return max(0, delta)  # Don't return negative values
     except (ValueError, AttributeError):
         return MAX_DAYS_FOR_RED + 1
@@ -274,7 +279,7 @@ def generate_html(spaces_by_location: Dict, time_series_data: Dict) -> str:
                                     <div class="next-date">{next_available_display}</div>
                                 </div>
                                 <div class="mt-2">
-                                    <small class="text-muted">1-Week Booking Rate: {space['booking_rate_1week']:.1%}</small>
+                                    <small class="text-muted">1-Week Booking Rate: {space['booking_rate_1week']:.1f}%</small>
                                 </div>
                             </div>
                         </div>
@@ -533,7 +538,7 @@ function createChart(canvasId, dates, datasets) {
                                 label += ': ';
                             }
                             if (context.parsed.y !== null) {
-                                label += (context.parsed.y * 100).toFixed(1) + '%';
+                                label += context.parsed.y.toFixed(1) + '%';
                             }
                             return label;
                         }
@@ -543,10 +548,10 @@ function createChart(canvasId, dates, datasets) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 1,
+                    max: 100,
                     ticks: {
                         callback: function(value) {
-                            return (value * 100).toFixed(0) + '%';
+                            return value.toFixed(0) + '%';
                         }
                     },
                     title: {
@@ -646,5 +651,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
-    
+    exit(main())    
