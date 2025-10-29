@@ -250,7 +250,7 @@ def generate_html(spaces_by_location: Dict, time_series_data: Dict) -> str:
                     <p class="text-muted">Media, Maker, and Creation Lab Spaces</p>
                 </div>
                 <div class="col-auto text-end">
-                    <p class="mb-0 text-muted small">Last Updated</p>
+                    <p class="mb-0 text-muted small">Last Updated Before MMCL Opened on</p>
                     <p class="mb-0 fw-bold">{last_updated}</p>
                 </div>
             </div>
