@@ -247,7 +247,7 @@ def generate_html(spaces_by_location: Dict, time_series_data: Dict) -> str:
             <div class="row align-items-center">
                 <div class="col">
                     <h1 class="display-5">MMCL Space Booking Dashboard</h1>
-                    <p class="text-muted">Media, Maker, and Creation Lab Spaces</p>
+                    <p class="text-muted">Media Creation Spaces</p>
                 </div>
                 <div class="col-auto text-end">
                     <p class="mb-0 text-muted small">Last Updated Before MMCL Opened on</p>
@@ -259,8 +259,8 @@ def generate_html(spaces_by_location: Dict, time_series_data: Dict) -> str:
         <section id="availability" class="mb-5">
             <div class="row mb-3">
                 <div class="col">
-                    <h2 class="h3">Next Available Booking</h2>
-                    <p class="text-muted">Color indicates booking demand: <span class="badge" style="background-color: {interpolate_color(0)}">Available Today</span> to <span class="badge" style="background-color: {interpolate_color(MAX_DAYS_FOR_RED)}">14+ Days Out</span></p>
+                    <h2 class="h3">Next Available Booking for Each Space</h2>
+                    <p class="text-muted">Data is updated each morning and shows the next available timeslot for each space. Color indicates booking demand: <span class="badge" style="background-color: {interpolate_color(0)}">Available Today</span> to <span class="badge" style="background-color: {interpolate_color(MAX_DAYS_FOR_RED)}">14+ Days Out</span></p>
                 </div>
             </div>
 '''
