@@ -84,7 +84,10 @@ def sort_locations(location_name: str) -> int:
 
 def interpolate_color(days: int) -> str:
     """
-    Interpolate color from green (0 days) to red (14+ days).
+    Interpolate color based on days until next available booking.
+    - 0 days (today): Green
+    - 1 day (tomorrow): Yellow
+    - 2-14+ days: Yellow to Red gradient
     
     Args:
         days: Number of days until next available booking
@@ -92,18 +95,29 @@ def interpolate_color(days: int) -> str:
     Returns:
         RGB color string like 'rgb(r, g, b)'
     """
-    if days <= 0:
-        return f'rgb({GREEN_RGB[0]}, {GREEN_RGB[1]}, {GREEN_RGB[2]})'
-    if days >= MAX_DAYS_FOR_RED:
-        return f'rgb({RED_RGB[0]}, {RED_RGB[1]}, {RED_RGB[2]})'
-    
-    # Linear interpolation between green and red
-    ratio = days / MAX_DAYS_FOR_RED
-    r = int(GREEN_RGB[0] + (RED_RGB[0] - GREEN_RGB[0]) * ratio)
-    g = int(GREEN_RGB[1] + (RED_RGB[1] - GREEN_RGB[1]) * ratio)
-    b = int(GREEN_RGB[2] + (RED_RGB[2] - GREEN_RGB[2]) * ratio)
-    
-    return f'rgb({r}, {g}, {b})'
+    if days == 0:
+        # Green for today only
+        return 'rgb(34, 197, 94)'  # Tailwind green-500
+    elif days == 1:
+        # Yellow for tomorrow
+        return 'rgb(234, 179, 8)'  # Tailwind yellow-500
+    elif days >= MAX_DAYS_FOR_RED:
+        # Red for 14+ days
+        return 'rgb(239, 68, 68)'  # Tailwind red-500
+    else:
+        # Gradient from yellow (day 1) to red (day 14)
+        # days is in range 2-13
+        yellow_rgb = (234, 179, 8)
+        red_rgb = (239, 68, 68)
+        
+        # Calculate ratio: day 2 = 0, day 13 = 1
+        ratio = (days - 1) / (MAX_DAYS_FOR_RED - 1)
+        
+        r = int(yellow_rgb[0] + (red_rgb[0] - yellow_rgb[0]) * ratio)
+        g = int(yellow_rgb[1] + (red_rgb[1] - yellow_rgb[1]) * ratio)
+        b = int(yellow_rgb[2] + (red_rgb[2] - yellow_rgb[2]) * ratio)
+        
+        return f'rgb({r}, {g}, {b})'
 
 
 def calculate_days_until(next_available: str) -> int:
@@ -260,7 +274,7 @@ def generate_html(spaces_by_location: Dict, time_series_data: Dict) -> str:
             <div class="row mb-3">
                 <div class="col">
                     <h2 class="h3">Next Available Booking for Each Space</h2>
-                    <p class="text-muted">Data is updated each morning and shows the next available timeslot for each space. Color indicates booking demand: <span class="badge" style="background-color: {interpolate_color(0)}">Available Today</span> to <span class="badge" style="background-color: {interpolate_color(MAX_DAYS_FOR_RED)}">14+ Days Out</span></p>
+                    <p class="text-muted">Data is updated each morning and shows the next available timeslot for each space. Color indicates booking demand: <span class="badge" style="background-color: rgb(34, 197, 94)">Available Today</span> <span class="badge" style="background-color: rgb(234, 179, 8)">Tomorrow</span> to <span class="badge" style="background-color: rgb(239, 68, 68)">14+ Days Out</span></p>
                 </div>
             </div>
 '''
@@ -664,6 +678,9 @@ def main():
     
     return 0
 
+
+if __name__ == "__main__":
+    exit(main())
 
 if __name__ == "__main__":
     exit(main())
