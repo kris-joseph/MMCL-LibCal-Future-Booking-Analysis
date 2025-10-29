@@ -35,8 +35,8 @@ import pytz
 
 # Configuration constants
 API_BASE_URL = "https://yorku.libcal.com/api/1.1"
-OAUTH_CLIENT_ID = 
-OAUTH_CLIENT_SECRET = 
+OAUTH_CLIENT_ID = os.environ.get('LIBCAL_CLIENT_ID', '')
+OAUTH_CLIENT_SECRET = os.environ.get('LIBCAL_CLIENT_SECRET', '')
 TIMEZONE = "America/Toronto"
 DEFAULT_INPUT_FILE = "input/spaces_to_analyze.csv"
 DEFAULT_OUTPUT_FILE_TEMPLATE = "output/space_booking_analysis_{date}.csv"
