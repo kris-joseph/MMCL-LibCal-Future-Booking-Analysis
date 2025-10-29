@@ -67,6 +67,21 @@ def get_monday_files() -> List[Path]:
     return sorted(monday_files)
 
 
+def sort_locations(location_name: str) -> int:
+    """
+    Custom sort order for locations.
+    Returns sort priority (lower numbers appear first).
+    """
+    if 'Scott Library' in location_name:
+        return 0
+    elif 'Media Creation Studios' in location_name:
+        return 1
+    elif 'Visualization Studio' in location_name:
+        return 2
+    else:
+        return 99  # Unknown locations go last
+
+
 def interpolate_color(days: int) -> str:
     """
     Interpolate color from green (0 days) to red (14+ days).
@@ -251,7 +266,7 @@ def generate_html(spaces_by_location: Dict, time_series_data: Dict) -> str:
 '''
     
     # Generate availability cards by location
-    for location_name in sorted(spaces_by_location.keys()):
+    for location_name in sorted(spaces_by_location.keys(), key=sort_locations):
         spaces = spaces_by_location[location_name]
         
         html += f'''
@@ -305,7 +320,7 @@ def generate_html(spaces_by_location: Dict, time_series_data: Dict) -> str:
     
     # Generate time series charts by location
     if time_series_data['dates']:
-        for location_name in sorted(time_series_by_location.keys()):
+        for location_name in sorted(time_series_by_location.keys(), key=sort_locations):
             spaces = time_series_by_location[location_name]
             location_id = location_name.replace(' ', '_').replace('&', 'and')
             
@@ -651,4 +666,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())    
+    exit(main())
