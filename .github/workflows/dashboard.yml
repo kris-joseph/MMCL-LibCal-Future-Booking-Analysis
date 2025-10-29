@@ -1,0 +1,42 @@
+name: Generate Dashboard
+
+on:
+  schedule:
+    # Run at 8:30 AM Toronto time (12:30 PM UTC in winter, 13:30 PM UTC in summer)
+    # Using 13:30 UTC to be safe during daylight saving
+    - cron: '30 13 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  generate-dashboard:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history to access previous output files
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # No additional dependencies needed beyond standard library
+      
+      - name: Generate dashboard
+        run: |
+          python generate_dashboard.py
+      
+      - name: Commit and push dashboard updates
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add docs/
+          git diff --staged --quiet || git commit -m "Update dashboard: $(date +'%Y-%m-%d %H:%M:%S')"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
