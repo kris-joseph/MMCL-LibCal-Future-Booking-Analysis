@@ -67,9 +67,27 @@ def get_monday_files() -> List[Path]:
     return sorted(monday_files)
 
 
+def sort_locations(location_name: str) -> int:
+    """
+    Custom sort order for locations.
+    Returns sort priority (lower numbers appear first).
+    """
+    if 'Scott Library' in location_name:
+        return 0
+    elif 'Media Creation Studios' in location_name:
+        return 1
+    elif 'Visualization Studio' in location_name:
+        return 2
+    else:
+        return 99  # Unknown locations go last
+
+
 def interpolate_color(days: int) -> str:
     """
-    Interpolate color from green (0 days) to red (14+ days).
+    Interpolate color based on days until next available booking.
+    - 0 days (today): Green
+    - 1 day (tomorrow): Yellow
+    - 2-14+ days: Yellow to Red gradient
     
     Args:
         days: Number of days until next available booking
@@ -77,18 +95,29 @@ def interpolate_color(days: int) -> str:
     Returns:
         RGB color string like 'rgb(r, g, b)'
     """
-    if days <= 0:
-        return f'rgb({GREEN_RGB[0]}, {GREEN_RGB[1]}, {GREEN_RGB[2]})'
-    if days >= MAX_DAYS_FOR_RED:
-        return f'rgb({RED_RGB[0]}, {RED_RGB[1]}, {RED_RGB[2]})'
-    
-    # Linear interpolation between green and red
-    ratio = days / MAX_DAYS_FOR_RED
-    r = int(GREEN_RGB[0] + (RED_RGB[0] - GREEN_RGB[0]) * ratio)
-    g = int(GREEN_RGB[1] + (RED_RGB[1] - GREEN_RGB[1]) * ratio)
-    b = int(GREEN_RGB[2] + (RED_RGB[2] - GREEN_RGB[2]) * ratio)
-    
-    return f'rgb({r}, {g}, {b})'
+    if days == 0:
+        # Green for today only
+        return 'rgb(34, 197, 94)'  # Tailwind green-500
+    elif days == 1:
+        # Yellow for tomorrow
+        return 'rgb(234, 179, 8)'  # Tailwind yellow-500
+    elif days >= MAX_DAYS_FOR_RED:
+        # Red for 14+ days
+        return 'rgb(239, 68, 68)'  # Tailwind red-500
+    else:
+        # Gradient from yellow (day 1) to red (day 14)
+        # days is in range 2-13
+        yellow_rgb = (234, 179, 8)
+        red_rgb = (239, 68, 68)
+        
+        # Calculate ratio: day 2 = 0, day 13 = 1
+        ratio = (days - 1) / (MAX_DAYS_FOR_RED - 1)
+        
+        r = int(yellow_rgb[0] + (red_rgb[0] - yellow_rgb[0]) * ratio)
+        g = int(yellow_rgb[1] + (red_rgb[1] - yellow_rgb[1]) * ratio)
+        b = int(yellow_rgb[2] + (red_rgb[2] - yellow_rgb[2]) * ratio)
+        
+        return f'rgb({r}, {g}, {b})'
 
 
 def calculate_days_until(next_available: str) -> int:
@@ -97,9 +126,14 @@ def calculate_days_until(next_available: str) -> int:
         if not next_available or next_available.lower() in ['none', 'n/a', '']:
             return MAX_DAYS_FOR_RED + 1  # Return max+ for unavailable spaces
         
-        next_date = datetime.strptime(next_available, '%Y-%m-%d')
+        # Try parsing with timestamp first, then without
+        try:
+            next_date = datetime.strptime(next_available, '%Y-%m-%d %H:%M')
+        except ValueError:
+            next_date = datetime.strptime(next_available, '%Y-%m-%d')
+        
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        delta = (next_date - today).days
+        delta = (next_date.replace(hour=0, minute=0, second=0, microsecond=0) - today).days
         return max(0, delta)  # Don't return negative values
     except (ValueError, AttributeError):
         return MAX_DAYS_FOR_RED + 1
@@ -227,10 +261,10 @@ def generate_html(spaces_by_location: Dict, time_series_data: Dict) -> str:
             <div class="row align-items-center">
                 <div class="col">
                     <h1 class="display-5">MMCL Space Booking Dashboard</h1>
-                    <p class="text-muted">Media, Maker, and Creation Lab Spaces</p>
+                    <p class="text-muted">Media Creation Spaces</p>
                 </div>
                 <div class="col-auto text-end">
-                    <p class="mb-0 text-muted small">Last Updated</p>
+                    <p class="mb-0 text-muted small">Last Updated Before MMCL Opened on</p>
                     <p class="mb-0 fw-bold">{last_updated}</p>
                 </div>
             </div>
@@ -239,14 +273,14 @@ def generate_html(spaces_by_location: Dict, time_series_data: Dict) -> str:
         <section id="availability" class="mb-5">
             <div class="row mb-3">
                 <div class="col">
-                    <h2 class="h3">Next Available Booking</h2>
-                    <p class="text-muted">Color indicates booking demand: <span class="badge" style="background-color: {interpolate_color(0)}">Available Today</span> to <span class="badge" style="background-color: {interpolate_color(MAX_DAYS_FOR_RED)}">14+ Days Out</span></p>
+                    <h2 class="h3">Next Available Booking for Each Space</h2>
+                    <p class="text-muted">Data is updated each morning and shows the next available timeslot for each space. Color indicates booking demand: <span class="badge" style="background-color: rgb(34, 197, 94)">Available Today</span> <span class="badge" style="background-color: rgb(234, 179, 8)">Tomorrow</span> to <span class="badge" style="background-color: rgb(239, 68, 68)">14+ Days Out</span></p>
                 </div>
             </div>
 '''
     
     # Generate availability cards by location
-    for location_name in sorted(spaces_by_location.keys()):
+    for location_name in sorted(spaces_by_location.keys(), key=sort_locations):
         spaces = spaces_by_location[location_name]
         
         html += f'''
@@ -274,7 +308,7 @@ def generate_html(spaces_by_location: Dict, time_series_data: Dict) -> str:
                                     <div class="next-date">{next_available_display}</div>
                                 </div>
                                 <div class="mt-2">
-                                    <small class="text-muted">1-Week Booking Rate: {space['booking_rate_1week']:.1%}</small>
+                                    <small class="text-muted">1-Week Booking Rate: {space['booking_rate_1week']:.1f}%</small>
                                 </div>
                             </div>
                         </div>
@@ -300,7 +334,7 @@ def generate_html(spaces_by_location: Dict, time_series_data: Dict) -> str:
     
     # Generate time series charts by location
     if time_series_data['dates']:
-        for location_name in sorted(time_series_by_location.keys()):
+        for location_name in sorted(time_series_by_location.keys(), key=sort_locations):
             spaces = time_series_by_location[location_name]
             location_id = location_name.replace(' ', '_').replace('&', 'and')
             
@@ -533,7 +567,7 @@ function createChart(canvasId, dates, datasets) {
                                 label += ': ';
                             }
                             if (context.parsed.y !== null) {
-                                label += (context.parsed.y * 100).toFixed(1) + '%';
+                                label += context.parsed.y.toFixed(1) + '%';
                             }
                             return label;
                         }
@@ -543,10 +577,10 @@ function createChart(canvasId, dates, datasets) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 1,
+                    max: 100,
                     ticks: {
                         callback: function(value) {
-                            return (value * 100).toFixed(0) + '%';
+                            return value.toFixed(0) + '%';
                         }
                     },
                     title: {
@@ -647,4 +681,6 @@ def main():
 
 if __name__ == "__main__":
     exit(main())
-    
+
+if __name__ == "__main__":
+    exit(main())
