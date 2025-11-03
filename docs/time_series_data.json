@@ -1,0 +1,112 @@
+{
+  "dates": [
+    "2025-11-03"
+  ],
+  "spaces": {
+    "19905": {
+      "space_name": "Scott 203K - Audio Recording Studio",
+      "location_name": "Scott Library Making & Media Creation Lab",
+      "data": [
+        5.71
+      ]
+    },
+    "29187": {
+      "space_name": "Scott 207C - Audio Recording Booth",
+      "location_name": "Scott Library Making & Media Creation Lab",
+      "data": [
+        5.0
+      ]
+    },
+    "32502": {
+      "space_name": "Scott 207D - Audio Recording Booth",
+      "location_name": "Scott Library Making & Media Creation Lab",
+      "data": [
+        7.14
+      ]
+    },
+    "19904": {
+      "space_name": "Scott 204 - Flex Studio",
+      "location_name": "Scott Library Making & Media Creation Lab",
+      "data": [
+        61.43
+      ]
+    },
+    "21083": {
+      "space_name": "Scott 203E - VR/Podcasting Room",
+      "location_name": "Scott Library Making & Media Creation Lab",
+      "data": [
+        10.0
+      ]
+    },
+    "21082": {
+      "space_name": "Scott 203G - VR Room",
+      "location_name": "Scott Library Making & Media Creation Lab",
+      "data": [
+        0.0
+      ]
+    },
+    "33206": {
+      "space_name": "Gaming Lab (Rm 3050)",
+      "location_name": "Markham Library Visualization Studio and Gaming Lab",
+      "data": [
+        0.0
+      ]
+    },
+    "30719": {
+      "space_name": "Green Screen Video Studio (Rm 3060C)",
+      "location_name": "Markham Library Media Creation Studios and Equipment",
+      "data": [
+        1.55
+      ]
+    },
+    "30720": {
+      "space_name": "Video and Photo Studio (Rm 3060H)",
+      "location_name": "Markham Library Media Creation Studios and Equipment",
+      "data": [
+        1.55
+      ]
+    },
+    "31827": {
+      "space_name": "Podcast Studio #1 (Rm 3060B)",
+      "location_name": "Markham Library Media Creation Studios and Equipment",
+      "data": [
+        0.0
+      ]
+    },
+    "30701": {
+      "space_name": "Podcast Studio #2 (Rm 3060D)",
+      "location_name": "Markham Library Media Creation Studios and Equipment",
+      "data": [
+        1.55
+      ]
+    },
+    "30721": {
+      "space_name": "Editing and Music Studio #1 (Rm 3060G)",
+      "location_name": "Markham Library Media Creation Studios and Equipment",
+      "data": [
+        0.0
+      ]
+    },
+    "30722": {
+      "space_name": "Editing and Music Studio #2 (Rm 3060F)",
+      "location_name": "Markham Library Media Creation Studios and Equipment",
+      "data": [
+        0.0
+      ]
+    },
+    "30723": {
+      "space_name": "Editing and Music Studio #3 (Rm 3060E)",
+      "location_name": "Markham Library Media Creation Studios and Equipment",
+      "data": [
+        1.55
+      ]
+    },
+    "33193": {
+      "space_name": "Mixed Use Studio (Rm 3045)",
+      "location_name": "Markham Library Media Creation Studios and Equipment",
+      "data": [
+        0.0
+      ]
+    }
+  }
+}
