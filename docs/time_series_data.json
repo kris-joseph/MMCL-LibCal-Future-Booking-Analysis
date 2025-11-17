@@ -1,7 +1,8 @@
 {
   "dates": [
     "2025-11-03",
-    "2025-11-10"
+    "2025-11-10",
+    "2025-11-17"
   ],
   "spaces": {
     "19905": {
@@ -9,7 +10,8 @@
       "location_name": "Scott Library Making & Media Creation Lab",
       "data": [
         5.71,
-        5.71
+        5.71,
+        16.43
       ]
     },
     "29187": {
@@ -17,13 +19,15 @@
       "location_name": "Scott Library Making & Media Creation Lab",
       "data": [
         5.0,
-        5.71
+        5.71,
+        14.29
       ]
     },
     "32502": {
       "space_name": "Scott 207D - Audio Recording Booth",
       "location_name": "Scott Library Making & Media Creation Lab",
       "data": [
+        7.14,
         7.14,
         7.14
       ]
@@ -33,6 +37,7 @@
       "location_name": "Scott Library Making & Media Creation Lab",
       "data": [
         61.43,
+        63.57,
         63.57
       ]
     },
@@ -41,13 +46,15 @@
       "location_name": "Scott Library Making & Media Creation Lab",
       "data": [
         10.0,
-        30.0
+        30.0,
+        25.71
       ]
     },
     "21082": {
       "space_name": "Scott 203G - VR Room",
       "location_name": "Scott Library Making & Media Creation Lab",
       "data": [
+        0.0,
         0.0,
         0.0
       ]
@@ -57,7 +64,8 @@
       "location_name": "Markham Library Visualization Studio and Gaming Lab",
       "data": [
         0.0,
-        2.33
+        2.33,
+        0.0
       ]
     },
     "30719": {
@@ -65,7 +73,8 @@
       "location_name": "Markham Library Media Creation Studios and Equipment",
       "data": [
         1.55,
-        0.0
+        0.0,
+        1.55
       ]
     },
     "30720": {
@@ -73,6 +82,7 @@
       "location_name": "Markham Library Media Creation Studios and Equipment",
       "data": [
         1.55,
+        0.0,
         0.0
       ]
     },
@@ -80,6 +90,7 @@
       "space_name": "Podcast Studio #1 (Rm 3060B)",
       "location_name": "Markham Library Media Creation Studios and Equipment",
       "data": [
+        0.0,
         0.0,
         0.0
       ]
@@ -89,13 +100,15 @@
       "location_name": "Markham Library Media Creation Studios and Equipment",
       "data": [
         1.55,
-        2.33
+        2.33,
+        3.88
       ]
     },
     "30721": {
       "space_name": "Editing and Music Studio #1 (Rm 3060G)",
       "location_name": "Markham Library Media Creation Studios and Equipment",
       "data": [
+        0.0,
         0.0,
         0.0
       ]
@@ -105,6 +118,7 @@
       "location_name": "Markham Library Media Creation Studios and Equipment",
       "data": [
         0.0,
+        0.0,
         0.0
       ]
     },
@@ -113,7 +127,8 @@
       "location_name": "Markham Library Media Creation Studios and Equipment",
       "data": [
         1.55,
-        3.88
+        3.88,
+        0.0
       ]
     },
     "33193": {
@@ -121,7 +136,8 @@
       "location_name": "Markham Library Media Creation Studios and Equipment",
       "data": [
         0.0,
-        3.88
+        3.88,
+        0.0
       ]
     }
   }
