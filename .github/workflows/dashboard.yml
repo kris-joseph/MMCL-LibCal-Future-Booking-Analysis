@@ -4,7 +4,7 @@ on:
   schedule:
     # Run at 8:30 AM Toronto time (12:30 PM UTC in winter, 13:30 PM UTC in summer)
     # Using 13:30 UTC to be safe during daylight saving
-    - cron: '30 13 * * *'
+    - cron: '47 12 * * *'
   workflow_dispatch: # Allow manual triggering
 
 jobs:
